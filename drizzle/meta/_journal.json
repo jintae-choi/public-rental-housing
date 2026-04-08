@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1775649970818,
+      "tag": "0000_adorable_payback",
+      "breakpoints": true
+    }
+  ]
+}
