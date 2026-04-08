@@ -3,7 +3,7 @@
 ## 프로젝트 개요
 
 공공임대주택 공고를 자동 수집·분석하여, 사용자의 자격 조건에 맞는 공고를 필터링해주는 대시보드 웹 애플리케이션.
-상세 요구사항은 `docs/PRD.md` 참조. 아키텍처는 `docs/ARCHITECTURE.md` 참조.
+상세 요구사항은 `docs/PRD.md` 참조. 배포 가이드는 `DEPLOYMENT.md` 참조.
 
 ---
 
@@ -28,7 +28,7 @@ Next.js 15 (App Router) + TypeScript | Tailwind CSS + shadcn/ui | Supabase (Post
 
 ## 현재 진행 상태
 
-**Phase 0: 환경 세팅** ← 현재. 상세 태스크는 `docs/PHASES.md` 참조.
+**Phase 1: 데이터 수집 파이프라인** ← 현재. 상세 태스크는 `docs/PHASES.md` 참조.
 
 ---
 
