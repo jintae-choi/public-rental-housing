@@ -1,6 +1,6 @@
 # 개발 단계 (Phases)
 
-## Phase 0: 환경 세팅 & 문서화 ← 현재 단계
+## Phase 0: 환경 세팅 & 문서화 ✅ 완료
 - [x] CLAUDE.md 작성
 - [x] PRD.md 작성
 - [x] 프로젝트 초기화 (Next.js + TypeScript + pnpm)
