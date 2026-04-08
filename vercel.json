@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm drizzle-kit migrate && pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install"
+}

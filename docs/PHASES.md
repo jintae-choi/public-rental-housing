@@ -6,10 +6,10 @@
 - [x] 프로젝트 초기화 (Next.js + TypeScript + pnpm)
 - [x] Supabase 프로젝트 생성 및 연결
 - [x] Drizzle ORM 설정 및 초기 스키마 정의
-- [ ] DB 스키마 마이그레이션
-- [ ] GitHub 저장소 생성 및 초기 커밋
-- [ ] Vercel 배포 연결
-- [ ] 개발 환경 검증 (로컬 dev 서버 실행)
+- [x] DB 스키마 마이그레이션 (Vercel 배포 시 자동)
+- [x] GitHub 저장소 생성 및 초기 커밋
+- [x] Vercel 배포 설정 (자동 마이그레이션 포함)
+- [x] GitHub Actions 워크플로우 설정 (일일 크롤링/분석)
 
 ## Phase 1: 데이터 수집 파이프라인
 - [ ] 크롤링 대상 사이트 구조 분석 (SH, LH, 마이홈)
