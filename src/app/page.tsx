@@ -1,65 +1,94 @@
-import Image from "next/image";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Building2 } from "lucide-react";
 
-export default function Home() {
+// 메인 대시보드 페이지 — 공고 목록 (FR-009 기반)
+export default function HomePage(): React.ReactElement {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="container mx-auto max-w-6xl px-4 py-8">
+      {/* 페이지 헤더 */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight">공고 목록</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          내 조건에 맞는 공공임대주택 공고를 확인하세요.
+        </p>
+      </div>
+
+      {/* 필터 영역 */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {/* 지역 필터 */}
+        <Select>
+          <SelectTrigger>
+            <SelectValue placeholder="지역 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            <SelectItem value="seoul">서울</SelectItem>
+            <SelectItem value="gyeonggi">경기</SelectItem>
+            <SelectItem value="incheon">인천</SelectItem>
+            <SelectItem value="busan">부산</SelectItem>
+            <SelectItem value="daegu">대구</SelectItem>
+            <SelectItem value="gwangju">광주</SelectItem>
+            <SelectItem value="daejeon">대전</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* 주택유형 필터 */}
+        <Select>
+          <SelectTrigger>
+            <SelectValue placeholder="주택유형 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            <SelectItem value="national-rental">국민임대</SelectItem>
+            <SelectItem value="public-rental">공공임대</SelectItem>
+            <SelectItem value="youth-rental">청년임대</SelectItem>
+            <SelectItem value="newlywed-rental">신혼부부임대</SelectItem>
+            <SelectItem value="happy-house">행복주택</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* 상태 필터 */}
+        <Select>
+          <SelectTrigger>
+            <SelectValue placeholder="공고 상태" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">전체</SelectItem>
+            <SelectItem value="open">접수중</SelectItem>
+            <SelectItem value="upcoming">접수예정</SelectItem>
+            <SelectItem value="closed">마감</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* 검색 */}
+        <Input placeholder="공고명 검색..." />
+      </div>
+
+      {/* 공고 카드 리스트 — 빈 상태 UI */}
+      <EmptyAnnouncementState />
     </div>
+  );
+}
+
+// 빈 상태 UI 컴포넌트
+function EmptyAnnouncementState(): React.ReactElement {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center justify-center py-20 text-center">
+        <Building2 className="mb-4 h-12 w-12 text-muted-foreground/40" />
+        <p className="text-base font-medium text-muted-foreground">등록된 공고가 없습니다.</p>
+        <p className="mt-1 text-sm text-muted-foreground/70">
+          데이터 수집이 진행되면 이곳에 공고가 표시됩니다.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
