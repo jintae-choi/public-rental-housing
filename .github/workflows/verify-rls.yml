@@ -1,0 +1,33 @@
+name: Verify RLS Policies
+
+# workflow_dispatch 전용: RLS 정책을 변경하거나 원격 dev DB에 새 마이그레이션이 적용된 뒤
+#   "실제로 cross-user 차단이 되는가"를 end-to-end로 확인하고 싶을 때 수동 실행.
+# 로컬은 Supabase direct connection이 IPv6 전용이라 원격 DB 접근 불가 → CI에서만 돌린다.
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run RLS verification
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx scripts/verify-rls.ts
