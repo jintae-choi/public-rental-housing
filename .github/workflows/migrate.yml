@@ -6,6 +6,8 @@ on:
     paths:
       - "drizzle/**"
       - "src/lib/db/schema.ts"
+      - "scripts/migrate.ts"
+  workflow_dispatch:
 
 jobs:
   migrate:
@@ -28,4 +30,4 @@ jobs:
       - name: Run migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: pnpm drizzle-kit migrate
+        run: npx tsx scripts/migrate.ts
