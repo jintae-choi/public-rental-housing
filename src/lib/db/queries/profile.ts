@@ -1,4 +1,5 @@
-// 사용자 프로필 DB 쿼리 함수
+// 사용자 프로필 DB 쿼리 함수 (사용자 고정 정보)
+// Phase 3: 시나리오 관련 필드는 queries/profile-scenario.ts로 이관
 
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -24,24 +25,13 @@ export async function getProfile(userId: string): Promise<UserProfile | null> {
       userId: row.userId,
       name: row.name,
       birthDate: row.birthDate,
-      householdTypes: row.householdTypes,
-      maritalStatus: row.maritalStatus as UserProfile["maritalStatus"],
-      plannedMarriageDate: row.plannedMarriageDate,
-      householdMembers: row.householdMembers,
       isHouseholder: row.isHouseholder,
       homelessMonths: row.homelessMonths,
-      monthlyIncome: row.monthlyIncome,
-      totalAssets: row.totalAssets,
-      carValue: row.carValue,
       subscriptionType: row.subscriptionType as UserProfile["subscriptionType"],
       subscriptionStart: row.subscriptionStart,
       subscriptionPayments: row.subscriptionPayments,
       address: row.address,
       email: row.email,
-      spouseBirthDate: row.spouseBirthDate,
-      spouseIncome: row.spouseIncome,
-      spouseAssets: row.spouseAssets,
-      spouseWorkplace: row.spouseWorkplace,
       interestedRegions: row.interestedRegions,
       preferredAreaMin: row.preferredAreaMin,
       preferredAreaMax: row.preferredAreaMax,

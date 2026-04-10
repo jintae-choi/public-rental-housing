@@ -1,6 +1,6 @@
 import React from "react";
 // 프로필 페이지 — 서버 컴포넌트
-// 인증 확인 후 DB에서 프로필 로드하여 ProfileForm에 전달
+// 인증 확인 후 DB에서 프로필 및 시나리오 로드하여 ProfileForm에 전달
 
 import { redirect } from "next/navigation";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/db/queries/profile";
+import { listScenarios } from "@/lib/db/queries/profile-scenario";
 import { ProfileForm } from "@/components/profile/profile-form";
 
 export const metadata = {
@@ -30,14 +31,17 @@ export default async function ProfilePage(): Promise<React.ReactElement> {
     redirect("/login");
   }
 
-  // 프로필 데이터 로드
-  let profile = null;
-  try {
-    profile = await getProfile(user.id);
-  } catch (error) {
-    console.error("[ProfilePage] 프로필 로드 실패:", error);
-    // 로드 실패 시에도 빈 폼으로 렌더링
-  }
+  // 프로필 및 시나리오 병렬 로드
+  const [profile, scenarios] = await Promise.all([
+    getProfile(user.id).catch((error: unknown) => {
+      console.error("[ProfilePage] 프로필 로드 실패:", error);
+      return null;
+    }),
+    listScenarios(user.id).catch((error: unknown) => {
+      console.error("[ProfilePage] 시나리오 로드 실패:", error);
+      return [];
+    }),
+  ]);
 
   return (
     <main className="container max-w-3xl mx-auto py-10 px-4">
@@ -50,7 +54,7 @@ export default async function ProfilePage(): Promise<React.ReactElement> {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileForm initialData={profile} />
+          <ProfileForm initialData={profile} initialScenarios={scenarios} />
         </CardContent>
       </Card>
     </main>

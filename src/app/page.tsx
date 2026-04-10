@@ -29,14 +29,14 @@ export default function HomePage(): React.ReactElement {
             <SelectValue placeholder="지역 선택" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="seoul">서울</SelectItem>
-            <SelectItem value="gyeonggi">경기</SelectItem>
-            <SelectItem value="incheon">인천</SelectItem>
-            <SelectItem value="busan">부산</SelectItem>
-            <SelectItem value="daegu">대구</SelectItem>
-            <SelectItem value="gwangju">광주</SelectItem>
-            <SelectItem value="daejeon">대전</SelectItem>
+            <SelectItem value="전체">전체</SelectItem>
+            <SelectItem value="서울">서울</SelectItem>
+            <SelectItem value="경기">경기</SelectItem>
+            <SelectItem value="인천">인천</SelectItem>
+            <SelectItem value="부산">부산</SelectItem>
+            <SelectItem value="대구">대구</SelectItem>
+            <SelectItem value="광주">광주</SelectItem>
+            <SelectItem value="대전">대전</SelectItem>
           </SelectContent>
         </Select>
 
@@ -46,12 +46,12 @@ export default function HomePage(): React.ReactElement {
             <SelectValue placeholder="주택유형 선택" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="national-rental">국민임대</SelectItem>
-            <SelectItem value="public-rental">공공임대</SelectItem>
-            <SelectItem value="youth-rental">청년임대</SelectItem>
-            <SelectItem value="newlywed-rental">신혼부부임대</SelectItem>
-            <SelectItem value="happy-house">행복주택</SelectItem>
+            <SelectItem value="전체">전체</SelectItem>
+            <SelectItem value="국민임대">국민임대</SelectItem>
+            <SelectItem value="공공임대">공공임대</SelectItem>
+            <SelectItem value="청년임대">청년임대</SelectItem>
+            <SelectItem value="신혼부부임대">신혼부부임대</SelectItem>
+            <SelectItem value="행복주택">행복주택</SelectItem>
           </SelectContent>
         </Select>
 
@@ -61,10 +61,10 @@ export default function HomePage(): React.ReactElement {
             <SelectValue placeholder="공고 상태" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">전체</SelectItem>
-            <SelectItem value="open">접수중</SelectItem>
-            <SelectItem value="upcoming">접수예정</SelectItem>
-            <SelectItem value="closed">마감</SelectItem>
+            <SelectItem value="전체">전체</SelectItem>
+            <SelectItem value="접수중">접수중</SelectItem>
+            <SelectItem value="접수예정">접수예정</SelectItem>
+            <SelectItem value="마감">마감</SelectItem>
           </SelectContent>
         </Select>
 

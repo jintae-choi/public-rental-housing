@@ -100,17 +100,23 @@ export const eligibilityConditions = pgTable("eligibility_conditions", {
     .references(() => announcements.id, { onDelete: "cascade" })
     .notNull(),
   targetGroup: text("target_group"),
+  priorityRank: integer("priority_rank"),
   incomeLimit: jsonb("income_limit"),
   assetLimit: integer("asset_limit"),
   carLimit: integer("car_limit"),
   ageMin: integer("age_min"),
   ageMax: integer("age_max"),
+  childAgeMax: integer("child_age_max"),
   homelessMonths: integer("homeless_months"),
   regionRequirement: text("region_requirement").array(),
   subscriptionMonths: integer("subscription_months"),
   subscriptionPayments: integer("subscription_payments"),
   householdType: text("household_type").array(),
   marriageCondition: text("marriage_condition"),
+  workDurationMonths: integer("work_duration_months"),
+  maxResidenceYears: integer("max_residence_years"),
+  parentIncomeIncluded: boolean("parent_income_included"),
+  scoringCriteria: jsonb("scoring_criteria"),
   specialConditions: jsonb("special_conditions"),
   rawAnalysis: text("raw_analysis"),
   analyzedAt: timestamp("analyzed_at"),
@@ -118,31 +124,23 @@ export const eligibilityConditions = pgTable("eligibility_conditions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// user_profiles: 사용자 고정 정보 (본인 기준, 시나리오 무관)
+//   - 시나리오별로 달라지는 필드(가구 구성/소득/자산/배우자)는 profile_scenarios로 이관
 export const userProfiles = pgTable("user_profiles", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").unique().notNull(),
   name: text("name"),
   birthDate: date("birth_date"),
-  householdTypes: text("household_types").array(),
-  maritalStatus: maritalStatusEnum("marital_status"),
-  plannedMarriageDate: date("planned_marriage_date"),
-  householdMembers: integer("household_members"),
   isHouseholder: boolean("is_householder"),
   homelessMonths: integer("homeless_months"),
-  monthlyIncome: integer("monthly_income"),
-  totalAssets: integer("total_assets"),
-  carValue: integer("car_value"),
+  // 청약통장 (본인 계좌)
   subscriptionType: subscriptionTypeEnum("subscription_type"),
   subscriptionStart: date("subscription_start"),
   subscriptionPayments: integer("subscription_payments"),
+  // 주소/연락처
   address: text("address"),
   interestedRegions: text("interested_regions").array(),
   email: text("email"),
-  // 배우자(예정자) 정보
-  spouseBirthDate: date("spouse_birth_date"),
-  spouseIncome: integer("spouse_income"),
-  spouseAssets: integer("spouse_assets"),
-  spouseWorkplace: text("spouse_workplace"),
   // 주거 선호 조건
   preferredAreaMin: real("preferred_area_min"),
   preferredAreaMax: real("preferred_area_max"),
@@ -165,9 +163,38 @@ export const userProfiles = pgTable("user_profiles", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// profile_scenarios: 사용자당 최대 3개의 자격 시나리오 (예: "1인가구", "예비신혼")
+//   - 하나의 사용자가 동시에 복수 가구 구성에 해당할 수 있어 매칭은 시나리오별로 수행
+//   - 최대 3개 제약은 앱 레벨(server action)에서 enforce
+export const profileScenarios = pgTable("profile_scenarios", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull(),
+  name: text("name").notNull(),
+  isDefault: boolean("is_default").default(false).notNull(),
+  // 가구 구성
+  householdTypes: text("household_types").array(),
+  maritalStatus: maritalStatusEnum("marital_status"),
+  plannedMarriageDate: date("planned_marriage_date"),
+  householdMembers: integer("household_members"),
+  // 소득/자산 (시나리오 기준 가구 합산)
+  monthlyIncome: integer("monthly_income"),
+  totalAssets: integer("total_assets"),
+  carValue: integer("car_value"),
+  // 배우자(예정자) 정보
+  spouseBirthDate: date("spouse_birth_date"),
+  spouseIncome: integer("spouse_income"),
+  spouseAssets: integer("spouse_assets"),
+  spouseWorkplace: text("spouse_workplace"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const eligibilityResults = pgTable("eligibility_results", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull(),
+  scenarioId: uuid("scenario_id")
+    .references(() => profileScenarios.id, { onDelete: "cascade" })
+    .notNull(),
   announcementId: uuid("announcement_id")
     .references(() => announcements.id, { onDelete: "cascade" })
     .notNull(),

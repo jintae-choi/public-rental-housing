@@ -1,0 +1,884 @@
+{
+  "id": "ec94e274-b3a5-4d05-921e-7a3ed0f2f34d",
+  "prevId": "32d5de90-2ded-4b43-853e-bde02405fe2c",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.announcements": {
+      "name": "announcements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "announcement_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UPCOMING'"
+        },
+        "housing_type": {
+          "name": "housing_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "region": {
+          "name": "region",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "district": {
+          "name": "district",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supply_count": {
+          "name": "supply_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "area_sqm": {
+          "name": "area_sqm",
+          "type": "real[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deposit": {
+          "name": "deposit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "monthly_rent": {
+          "name": "monthly_rent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "application_start": {
+          "name": "application_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "application_end": {
+          "name": "application_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "announcement_date": {
+          "name": "announcement_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "winner_date": {
+          "name": "winner_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contract_start": {
+          "name": "contract_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contract_end": {
+          "name": "contract_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detail_url": {
+          "name": "detail_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pdf_url": {
+          "name": "pdf_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pdf_text": {
+          "name": "pdf_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw_html": {
+          "name": "raw_html",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_modified": {
+          "name": "is_modified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "announcements_external_id_unique": {
+          "name": "announcements_external_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "external_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.eligibility_conditions": {
+      "name": "eligibility_conditions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "announcement_id": {
+          "name": "announcement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_group": {
+          "name": "target_group",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "priority_rank": {
+          "name": "priority_rank",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "income_limit": {
+          "name": "income_limit",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "asset_limit": {
+          "name": "asset_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "car_limit": {
+          "name": "car_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "age_min": {
+          "name": "age_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "age_max": {
+          "name": "age_max",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "child_age_max": {
+          "name": "child_age_max",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "homeless_months": {
+          "name": "homeless_months",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "region_requirement": {
+          "name": "region_requirement",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscription_months": {
+          "name": "subscription_months",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscription_payments": {
+          "name": "subscription_payments",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "household_type": {
+          "name": "household_type",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "marriage_condition": {
+          "name": "marriage_condition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "work_duration_months": {
+          "name": "work_duration_months",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max_residence_years": {
+          "name": "max_residence_years",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_income_included": {
+          "name": "parent_income_included",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scoring_criteria": {
+          "name": "scoring_criteria",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "special_conditions": {
+          "name": "special_conditions",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw_analysis": {
+          "name": "raw_analysis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "analyzed_at": {
+          "name": "analyzed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parser_version": {
+          "name": "parser_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "eligibility_conditions_announcement_id_announcements_id_fk": {
+          "name": "eligibility_conditions_announcement_id_announcements_id_fk",
+          "tableFrom": "eligibility_conditions",
+          "tableTo": "announcements",
+          "columnsFrom": [
+            "announcement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.eligibility_results": {
+      "name": "eligibility_results",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "announcement_id": {
+          "name": "announcement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "condition_id": {
+          "name": "condition_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "name": "result",
+          "type": "eligibility_result",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "details": {
+          "name": "details",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "matched_at": {
+          "name": "matched_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "eligibility_results_announcement_id_announcements_id_fk": {
+          "name": "eligibility_results_announcement_id_announcements_id_fk",
+          "tableFrom": "eligibility_results",
+          "tableTo": "announcements",
+          "columnsFrom": [
+            "announcement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "eligibility_results_condition_id_eligibility_conditions_id_fk": {
+          "name": "eligibility_results_condition_id_eligibility_conditions_id_fk",
+          "tableFrom": "eligibility_results",
+          "tableTo": "eligibility_conditions",
+          "columnsFrom": [
+            "condition_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.notifications": {
+      "name": "notifications",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "announcement_id": {
+          "name": "announcement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "notification_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "channel": {
+          "name": "channel",
+          "type": "notification_channel",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'EMAIL'"
+        },
+        "status": {
+          "name": "status",
+          "type": "notification_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_read": {
+          "name": "is_read",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "notifications_announcement_id_announcements_id_fk": {
+          "name": "notifications_announcement_id_announcements_id_fk",
+          "tableFrom": "notifications",
+          "tableTo": "announcements",
+          "columnsFrom": [
+            "announcement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_profiles": {
+      "name": "user_profiles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "birth_date": {
+          "name": "birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "household_types": {
+          "name": "household_types",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "marital_status": {
+          "name": "marital_status",
+          "type": "marital_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "planned_marriage_date": {
+          "name": "planned_marriage_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "household_members": {
+          "name": "household_members",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_householder": {
+          "name": "is_householder",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "homeless_months": {
+          "name": "homeless_months",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "monthly_income": {
+          "name": "monthly_income",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_assets": {
+          "name": "total_assets",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "car_value": {
+          "name": "car_value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscription_type": {
+          "name": "subscription_type",
+          "type": "subscription_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscription_start": {
+          "name": "subscription_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subscription_payments": {
+          "name": "subscription_payments",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "interested_regions": {
+          "name": "interested_regions",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spouse_birth_date": {
+          "name": "spouse_birth_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spouse_income": {
+          "name": "spouse_income",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spouse_assets": {
+          "name": "spouse_assets",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "spouse_workplace": {
+          "name": "spouse_workplace",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_area_min": {
+          "name": "preferred_area_min",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preferred_area_max": {
+          "name": "preferred_area_max",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "workplace": {
+          "name": "workplace",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max_commute_minutes": {
+          "name": "max_commute_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max_deposit": {
+          "name": "max_deposit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max_monthly_rent": {
+          "name": "max_monthly_rent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notification_enabled": {
+          "name": "notification_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "notification_level": {
+          "name": "notification_level",
+          "type": "notification_level",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'ELIGIBLE_ONLY'"
+        },
+        "notification_frequency": {
+          "name": "notification_frequency",
+          "type": "notification_frequency",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'IMMEDIATE'"
+        },
+        "deadline_reminder_days": {
+          "name": "deadline_reminder_days",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{3,1,0}'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_profiles_user_id_unique": {
+          "name": "user_profiles_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.announcement_status": {
+      "name": "announcement_status",
+      "schema": "public",
+      "values": [
+        "UPCOMING",
+        "OPEN",
+        "CLOSED"
+      ]
+    },
+    "public.eligibility_result": {
+      "name": "eligibility_result",
+      "schema": "public",
+      "values": [
+        "ELIGIBLE",
+        "CHECK_NEEDED",
+        "INELIGIBLE"
+      ]
+    },
+    "public.marital_status": {
+      "name": "marital_status",
+      "schema": "public",
+      "values": [
+        "SINGLE",
+        "MARRIED",
+        "DIVORCED",
+        "WIDOWED"
+      ]
+    },
+    "public.notification_channel": {
+      "name": "notification_channel",
+      "schema": "public",
+      "values": [
+        "EMAIL"
+      ]
+    },
+    "public.notification_frequency": {
+      "name": "notification_frequency",
+      "schema": "public",
+      "values": [
+        "IMMEDIATE",
+        "DAILY_SUMMARY"
+      ]
+    },
+    "public.notification_level": {
+      "name": "notification_level",
+      "schema": "public",
+      "values": [
+        "ELIGIBLE_ONLY",
+        "ELIGIBLE_AND_CHECK"
+      ]
+    },
+    "public.notification_status": {
+      "name": "notification_status",
+      "schema": "public",
+      "values": [
+        "SENT",
+        "FAILED"
+      ]
+    },
+    "public.notification_type": {
+      "name": "notification_type",
+      "schema": "public",
+      "values": [
+        "NEW_ANNOUNCEMENT",
+        "DEADLINE_REMINDER"
+      ]
+    },
+    "public.source": {
+      "name": "source",
+      "schema": "public",
+      "values": [
+        "SH",
+        "LH",
+        "MYHOME"
+      ]
+    },
+    "public.subscription_type": {
+      "name": "subscription_type",
+      "schema": "public",
+      "values": [
+        "GENERAL",
+        "FIRST_TIME",
+        "NONE"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

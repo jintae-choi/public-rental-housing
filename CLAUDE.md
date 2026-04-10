@@ -28,7 +28,10 @@ Next.js 15 (App Router) + TypeScript | Tailwind CSS + shadcn/ui | Supabase (Post
 
 ## 현재 진행 상태
 
-**Phase 1: 데이터 수집 파이프라인** ← 현재. 상세 태스크는 `docs/PHASES.md` 참조.
+**Phase 1: 데이터 수집 파이프라인** ← 현재
+- 상세 실행 계획: `docs/PHASE1_PLAN.md` (아키텍처 결정 이유, 사이트별 기술 상세 포함)
+- 태스크 체크리스트: `docs/PHASES.md`
+- 핵심 변경: 크롤러 3개→2개 (마이홈이 LH 100% 커버, SH만 별도)
 
 ---
 
@@ -70,8 +73,9 @@ NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE
 
 ### 서브에이전트 활용
 - 독립적인 파일/모듈 작업은 Agent 도구로 병렬 처리할 것
-- 예: 크롤러 3개(SH/LH/마이홈), 페이지 컴포넌트, 테스트 작성 등
+- 예: 크롤러 2개(마이홈/SH), 페이지 컴포넌트, 테스트 작성 등
 - 서브에이전트에게는 해당 작업에 필요한 컨텍스트만 전달 (PRD 전체 전달 금지)
+- **병렬 호출 시** 각 에이전트 프롬프트에 허용 경로/금지 경로를 구체 명시 (파일 충돌 방지)
 - **모델 지정 규칙** (Agent 도구의 `model` 파라미터):
   - `haiku` — 보일러플레이트 생성, 단순 파일 생성, 패턴 반복 작업, 코드 포맷팅
   - `sonnet` — 일반 구현, 코드 탐색/검색, 버그 수정, 컴포넌트 구현, 테스트 작성

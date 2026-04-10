@@ -1,27 +1,20 @@
-// 프로필 폼 데이터 타입 정의 (userProfiles 스키마 기반, 메타 필드 제외)
+// 프로필 폼 데이터 타입 정의
+// Phase 3: user_profiles(사용자 고정) + profile_scenarios(시나리오별) 분리
 
 export type MaritalStatus = "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
 export type SubscriptionType = "GENERAL" | "FIRST_TIME" | "NONE";
 export type NotificationLevel = "ELIGIBLE_ONLY" | "ELIGIBLE_AND_CHECK";
 export type NotificationFrequency = "IMMEDIATE" | "DAILY_SUMMARY";
 
+// ─── user_profiles: 사용자 고정 정보 (시나리오 무관) ─────────────────────────
 export interface ProfileFormData {
   // 기본 정보
   name: string | null;
   birthDate: string | null;
-  householdTypes: string[] | null;
-  maritalStatus: MaritalStatus | null;
-  plannedMarriageDate: string | null;
-  householdMembers: number | null;
   isHouseholder: boolean | null;
   homelessMonths: number | null;
 
-  // 소득/자산
-  monthlyIncome: number | null;
-  totalAssets: number | null;
-  carValue: number | null;
-
-  // 청약통장
+  // 청약통장 (본인 계좌)
   subscriptionType: SubscriptionType | null;
   subscriptionStart: string | null;
   subscriptionPayments: number | null;
@@ -29,12 +22,6 @@ export interface ProfileFormData {
   // 주소/연락처
   address: string | null;
   email: string | null;
-
-  // 배우자 정보
-  spouseBirthDate: string | null;
-  spouseIncome: number | null;
-  spouseAssets: number | null;
-  spouseWorkplace: string | null;
 
   // 선호 조건
   interestedRegions: string[] | null;
@@ -52,7 +39,6 @@ export interface ProfileFormData {
   deadlineReminderDays: number[];
 }
 
-// DB에서 조회한 프로필 전체 타입
 export interface UserProfile extends ProfileFormData {
   id: string;
   userId: string;
@@ -60,7 +46,36 @@ export interface UserProfile extends ProfileFormData {
   updatedAt: Date;
 }
 
-// 관심 지역 선택지
+// ─── profile_scenarios: 사용자당 최대 3개 ─────────────────────────────────
+export const MAX_SCENARIOS_PER_USER = 3;
+
+export interface ScenarioFormData {
+  name: string;
+  isDefault: boolean;
+  // 가구 구성
+  householdTypes: string[] | null;
+  maritalStatus: MaritalStatus | null;
+  plannedMarriageDate: string | null;
+  householdMembers: number | null;
+  // 소득/자산
+  monthlyIncome: number | null;
+  totalAssets: number | null;
+  carValue: number | null;
+  // 배우자
+  spouseBirthDate: string | null;
+  spouseIncome: number | null;
+  spouseAssets: number | null;
+  spouseWorkplace: string | null;
+}
+
+export interface ProfileScenario extends ScenarioFormData {
+  id: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ─── 선택지 상수 ─────────────────────────────────────────────────────────
 export const REGIONS = [
   "서울",
   "경기",
@@ -81,7 +96,6 @@ export const REGIONS = [
   "제주",
 ] as const;
 
-// 가구 유형 선택지
 export const HOUSEHOLD_TYPES = [
   "청년",
   "신혼부부",

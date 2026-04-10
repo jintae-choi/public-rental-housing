@@ -8,6 +8,27 @@
       "when": 1775649970818,
       "tag": "0000_adorable_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1775739796521,
+      "tag": "0001_sharp_namor",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775999999999,
+      "tag": "0002_rls_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776211200000,
+      "tag": "0003_profile_scenarios",
+      "breakpoints": true
     }
   ]
 }

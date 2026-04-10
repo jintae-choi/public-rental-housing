@@ -1,4 +1,4 @@
-name: Daily Scrape & Analyze
+name: Daily Scrape, Analyze & Match
 
 on:
   schedule:
@@ -25,19 +25,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Run DB migration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx drizzle-kit migrate
+
       - name: Run scraper
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          # TODO: Phase 1 구현 시 활성화
-          # pnpm ts-node scripts/scrape.ts
+        run: npx tsx scripts/scrape.ts
 
       - name: Run analyzer
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          # TODO: Phase 2 구현 시 활성화
-          # pnpm ts-node scripts/analyze.ts
+        run: npx tsx scripts/analyze.ts
+
+      # 분석 직후 자동으로 매칭까지 이어서 실행
+      # 실패해도 다음 회차에서 재시도 가능하므로 continue-on-error 미사용 (에러는 빨리 드러나는 게 낫다)
+      - name: Run matcher
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx scripts/match.ts
