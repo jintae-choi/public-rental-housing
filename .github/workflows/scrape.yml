@@ -9,7 +9,9 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Playwright 설치(--with-deps) ~9분 + myhome 109건 detail+PDF ~11분 +
+    # SH 50건 detail ~2분 + analyze ~3분 + overhead 여유 필요 → 45분으로 확장
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 

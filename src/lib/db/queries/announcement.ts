@@ -13,6 +13,17 @@ export type UpsertResult = {
 };
 
 /**
+ * Postgres text 컬럼에 저장 불가능한 null byte(0x00) 제거.
+ * PDF 파서가 출력하는 텍스트 스트림에 종종 \u0000이 섞여 있어
+ * "invalid byte sequence for encoding UTF8" 에러로 upsert 실패가 발생함.
+ */
+function sanitizeTextForPg(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/\u0000/g, "");
+}
+
+/**
  * 공고 1건 upsert — externalId 충돌 시 id, externalId, createdAt 제외한 모든 필드 업데이트
  */
 export async function upsertAnnouncement(
@@ -39,8 +50,8 @@ export async function upsertAnnouncement(
       contractStart: raw.contractStart ?? null,
       contractEnd: raw.contractEnd ?? null,
       pdfUrl: raw.pdfUrl ?? null,
-      pdfText: raw.pdfText ?? null,
-      rawHtml: raw.rawHtml ?? null,
+      pdfText: sanitizeTextForPg(raw.pdfText),
+      rawHtml: sanitizeTextForPg(raw.rawHtml),
       isModified: raw.isModified ?? false,
     } as const;
 
