@@ -9,6 +9,13 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+import dotenv from "dotenv";
+import fs from "node:fs";
+
+// 로컬 실행 지원: .env.local이 있으면 로드 (CI에선 secrets가 env에 직접 주입되므로 파일 없음)
+if (fs.existsSync(".env.local")) {
+  dotenv.config({ path: ".env.local" });
+}
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {

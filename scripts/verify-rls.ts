@@ -23,6 +23,12 @@
  */
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+import fs from "node:fs";
+
+if (fs.existsSync(".env.local")) {
+  dotenv.config({ path: ".env.local" });
+}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
