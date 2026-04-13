@@ -153,7 +153,13 @@ async function main(): Promise<void> {
   console.log("크롤링 파이프라인 정상 완료.");
 }
 
-main().catch((error) => {
-  console.error("크롤링 파이프라인 치명적 오류:", error);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    // upsertAnnouncements가 db 모듈을 통해 postgres 풀을 열어두기 때문에 명시 종료 필요
+    // (process.exitCode가 main() 내부에서 set된 경우 그대로 반영)
+    process.exit(process.exitCode ?? 0);
+  })
+  .catch((error) => {
+    console.error("크롤링 파이프라인 치명적 오류:", error);
+    process.exit(1);
+  });
