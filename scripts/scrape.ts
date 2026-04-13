@@ -131,12 +131,14 @@ async function main(): Promise<void> {
   const totalStart = Date.now();
   const summaries: RunSummary[] = [];
 
-  // 마이홈 크롤러 (LH 공고 전체 커버) — 순차 실행 (Playwright 브라우저 공유 불가)
+  // 마이홈 크롤러 (LH 공고 전체 커버) — 모집중 필터로 ~100건 / ~5분
   const myhomeScraper = new MyhomeScraper();
   summaries.push(await runScraper(myhomeScraper));
 
   // SH 크롤러 (서울주택도시공사)
-  const shScraper = new ShScraper();
+  // SH는 게시판 전체에 1500+건이 누적돼 있어 detail GET까지 도는 데 50분+
+  // → 최근 5페이지(~50건)만 수집. 매일 cron으로 신규 공고만 upsert되므로 누락 없음.
+  const shScraper = new ShScraper({ maxPages: 5 });
   summaries.push(await runScraper(shScraper));
 
   const totalElapsedMs = Date.now() - totalStart;
