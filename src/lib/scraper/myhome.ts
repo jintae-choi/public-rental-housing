@@ -1,11 +1,22 @@
 /**
- * 마이홈(myhome.go.kr) 크롤러 — Playwright 기반 (NetFunnel 우회)
+ * 마이홈(myhome.go.kr) 크롤러 — Playwright 기반 (NetFunnel + JSON API)
  *
- * HTTP 직접 POST는 서버 측 NetFunnel 검증으로 HTTP 903 반환.
- * Playwright로 실제 브라우저를 열어 fnSearch() JS 함수를 호출해야 정상 작동.
+ * 2026-04-13 사이트 재설계 대응:
+ *   - 목록 테이블이 #schTbody에 클라이언트사이드 jQuery로 렌더링됨 (HTML 파싱 불가)
+ *   - fnSearch()는 NetFunnel_Action 콜백 안에서 selectRsdtRcritNtcList.do로 POST 후
+ *     {resultCnt, resultList} JSON을 받아 jQuery로 tbody에 주입
+ *   - **빈 검색은 시스템 오류 페이지 반환** → srchPrgrStts=1(모집중) 강제 설정 필수
+ *   - 페이지당 5건 (recordCountPerPage), 페이지네이션은 fnSearch('N') 호출
+ *
+ * 처리 흐름:
+ *   1) 목록 페이지 GET (세션 + NetFunnel JS 로드)
+ *   2) srchPrgrStts=1 라디오 설정 → 빈 검색 회피 + 모집중인 공고만 수집
+ *   3) 페이지마다 fnSearch(N) 호출 + waitForResponse로 JSON 캡처
+ *   4) JSON.resultList → RawAnnouncement[] 변환
+ *   5) 각 공고마다 상세 페이지 접속 → rawHtml + PDF 추출 (기존 흐름)
  */
 
-import type { Page } from "playwright";
+import type { Page, Response } from "playwright";
 import type {
   Scraper,
   RawAnnouncement,
@@ -20,72 +31,105 @@ import {
   delay,
   inferHousingType,
   parseStatus,
+  normalizeDate,
 } from "./base";
 
 const BASE_URL = "https://www.myhome.go.kr";
 const LIST_URL = `${BASE_URL}/hws/portal/sch/selectRsdtRcritNtcView.do`;
+const LIST_API_PATH = "/hws/portal/sch/selectRsdtRcritNtcList.do";
 const DETAIL_BASE_URL = `${BASE_URL}/hws/portal/sch/selectRsdtRcritNtcDetailView.do`;
 const PDF_DOWNLOAD_PATH = "/hws/com/fms/cvplFileDownload.do";
-const LIST_READY_SELECTOR = "table.tb-list tbody tr a.li-title";
 
-// fnDownFile('fileId', 'fileSn') 패턴
+// 상세 페이지 PDF 링크 패턴: fnDownFile('atchFileId', 'fileSn')
 const PDF_FILE_PATTERN = /fnDownFile\('([^']+)',\s*'([^']+)'\)/;
 
-interface ListRowData {
-  pblancId: string;
-  title: string;
-  statusText: string;
-  region: string;
-  announcementDate: string;
-  winnerDate: string;
+// 기본 페이지당 레코드 수 — 서버가 강제하는 5건 기준
+const DEFAULT_PAGE_SIZE = 5;
+// 안전망: 한 번에 너무 많은 페이지를 돌지 않도록 절대 상한 (≈ 250건)
+const ABSOLUTE_MAX_PAGES = 50;
+
+interface MyhomeListItem {
+  pblancId?: string;
+  pblancNm?: string;
+  prgrStts?: string;
+  brtcCodeNm?: string;
+  rcritPblancDe?: string;
+  przwnerPresnatnDe?: string;
+  houseTyNm?: string;
+  suplyTyNm?: string;
+  suplyInsttNm?: string;
+  url?: string;
+  atchFileId?: string;
+  sttusSe?: string; // "2" = 정정공고
+}
+
+interface MyhomeListResponse {
+  resultCnt?: number;
+  resultList?: MyhomeListItem[];
 }
 
 /**
- * "YYYY-MM-DD" 형식 검증
+ * fnSearch 호출 → 응답 JSON 캡처
+ * NetFunnel acquire → POST → release 흐름 전체를 Playwright가 자동 처리
  */
-function validateDate(value: string): string | undefined {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim()) ? value.trim() : undefined;
-}
+async function callFnSearchAndCaptureJson(
+  page: Page,
+  pageNo: number,
+  timeoutMs: number
+): Promise<MyhomeListResponse> {
+  // waitForResponse는 트리거 *전에* 등록해야 race condition 없음
+  const responsePromise = page.waitForResponse(
+    (res: Response) =>
+      res.url().includes(LIST_API_PATH) && res.request().method() === "POST",
+    { timeout: timeoutMs }
+  );
 
-/**
- * 목록 페이지에서 공고 행 데이터 추출
- */
-async function extractListRows(page: Page): Promise<ListRowData[]> {
-  return page.evaluate(() => {
-    const rows = Array.from(
-      document.querySelectorAll("table.tb-list tbody tr")
+  await page.evaluate((p) => {
+    const win = window as Window & { fnSearch?: (page: string) => void };
+    if (typeof win.fnSearch !== "function") {
+      throw new Error("fnSearch 함수가 페이지에 정의되지 않음");
+    }
+    win.fnSearch(String(p));
+  }, pageNo);
+
+  const response = await responsePromise;
+  const contentType = (response.headers()["content-type"] ?? "").toLowerCase();
+
+  if (!contentType.includes("json")) {
+    // 시스템 오류 페이지(HTML)가 반환된 경우
+    const bodyText = await response.text();
+    const snippet = bodyText.slice(0, 200).replace(/\s+/g, " ");
+    throw new Error(
+      `목록 응답이 JSON이 아님 (content-type=${contentType}): ${snippet}`
     );
+  }
 
-    return rows
-      .map((row) => {
-        const titleAnchor = row.querySelector("a.li-title");
-        if (!titleAnchor) return null;
+  return (await response.json()) as MyhomeListResponse;
+}
 
-        const href = titleAnchor.getAttribute("href") ?? "";
-        const idMatch = href.match(/fnSelectDetail\('(\d+)'\)/);
-        if (!idMatch) return null;
+/**
+ * JSON 항목 → RawAnnouncement 변환
+ */
+function buildAnnouncementFromJson(item: MyhomeListItem): RawAnnouncement | null {
+  if (!item.pblancId || !item.pblancNm) return null;
 
-        const scheduleLis = Array.from(row.querySelectorAll("ul.schedule li"));
-        let announcementDate = "";
-        let winnerDate = "";
-        for (const li of scheduleLis) {
-          const label = li.querySelector(".label")?.textContent?.trim() ?? "";
-          const value = li.querySelector(".value")?.textContent?.trim() ?? "";
-          if (label === "모집공고") announcementDate = value;
-          if (label === "당첨발표") winnerDate = value;
-        }
+  const title = item.pblancNm.trim();
+  // 주택 유형: API의 houseTyNm/suplyTyNm 우선, 부족하면 제목 키워드로 추론
+  const housingType =
+    item.suplyTyNm ?? item.houseTyNm ?? inferHousingType(title);
 
-        return {
-          pblancId: idMatch[1],
-          title: titleAnchor.textContent?.trim() ?? "",
-          statusText: row.querySelector("td.housing-state")?.textContent?.trim() ?? "",
-          region: row.querySelector(".f-loc")?.textContent?.trim() ?? "",
-          announcementDate,
-          winnerDate,
-        };
-      })
-      .filter((row): row is NonNullable<typeof row> => row !== null);
-  });
+  return {
+    externalId: item.pblancId,
+    source: "MYHOME",
+    title,
+    detailUrl: `${DETAIL_BASE_URL}?pblancId=${item.pblancId}`,
+    status: parseStatus(item.prgrStts ?? ""),
+    housingType,
+    region: item.brtcCodeNm?.trim() || undefined,
+    announcementDate: normalizeDate(item.rcritPblancDe),
+    winnerDate: normalizeDate(item.przwnerPresnatnDe),
+    isModified: item.sttusSe === "2",
+  };
 }
 
 /**
@@ -98,8 +142,7 @@ function extractPdfFileInfo(html: string): { atchFileId: string; fileSn: string 
 }
 
 /**
- * 브라우저 컨텍스트 내 fetch로 PDF 다운로드
- * 세션 쿠키가 자동 포함되어 NetFunnel 인증 통과
+ * 브라우저 컨텍스트 내 fetch로 PDF 다운로드 — 세션 쿠키 자동 포함
  */
 async function downloadPdfInBrowser(
   page: Page,
@@ -119,7 +162,7 @@ async function downloadPdfInBrowser(
 
       const arrayBuffer = await res.arrayBuffer();
       const bytes = new Uint8Array(arrayBuffer);
-      // Uint8Array → Base64 (브라우저 환경이므로 Node Buffer 미사용)
+      // 큰 버퍼를 String.fromCharCode(...) 한 번에 넘기면 stack overflow → 청크
       const chunks: string[] = [];
       const chunkSize = 8192;
       for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -144,20 +187,6 @@ async function downloadPdfInBrowser(
   }
 }
 
-function buildAnnouncement(row: ListRowData): RawAnnouncement {
-  return {
-    externalId: row.pblancId,
-    source: "MYHOME",
-    title: row.title,
-    detailUrl: `${DETAIL_BASE_URL}?pblancId=${row.pblancId}`,
-    status: parseStatus(row.statusText),
-    housingType: inferHousingType(row.title),
-    region: row.region || undefined,
-    announcementDate: validateDate(row.announcementDate),
-    winnerDate: validateDate(row.winnerDate),
-  };
-}
-
 export class MyhomeScraper implements Scraper {
   readonly source = "MYHOME" as const;
   private readonly config: ScraperConfig;
@@ -175,14 +204,16 @@ export class MyhomeScraper implements Scraper {
 
     try {
       await this.browserManager.launch();
-      const rows = await this.scrapeAllPages(errors);
+      const items = await this.scrapeAllPages(errors);
 
-      // 상세 페이지용 페이지를 하나만 생성하여 재사용
+      // 상세 페이지용 페이지를 하나 생성하여 재사용 (PDF 다운로드까지 같은 컨텍스트)
       const detailPage = await this.browserManager.newPage();
       try {
-        for (const row of rows) {
-          const announcement = await this.processRow(row, detailPage, errors);
-          announcements.push(announcement);
+        for (const item of items) {
+          const announcement = await this.processItem(item, detailPage, errors);
+          if (announcement) {
+            announcements.push(announcement);
+          }
           await delay(this.config.requestDelayMs);
         }
       } finally {
@@ -204,32 +235,83 @@ export class MyhomeScraper implements Scraper {
   }
 
   /**
-   * 목록 페이지 전체 페이지네이션 수집
+   * 모든 페이지를 fnSearch로 순회하며 JSON 데이터 누적
    */
-  private async scrapeAllPages(errors: ScrapeError[]): Promise<ListRowData[]> {
+  private async scrapeAllPages(errors: ScrapeError[]): Promise<MyhomeListItem[]> {
     const page = await this.browserManager.newPage();
-    const allRows: ListRowData[] = [];
+    const allItems: MyhomeListItem[] = [];
 
     try {
-      await page.goto(LIST_URL, { waitUntil: "domcontentloaded", timeout: this.config.timeoutMs });
-      await page.evaluate(() => (window as Window & { fnSearch?: () => void }).fnSearch?.());
-      await page.waitForSelector(LIST_READY_SELECTOR, { timeout: this.config.timeoutMs });
+      await page.goto(LIST_URL, {
+        waitUntil: "domcontentloaded",
+        timeout: this.config.timeoutMs,
+      });
 
+      // fnSearch 함수와 폼이 준비될 때까지 대기
+      await page.waitForFunction(
+        () => {
+          const win = window as Window & { fnSearch?: unknown };
+          return typeof win.fnSearch === "function" && !!document.getElementById("frm");
+        },
+        { timeout: this.config.timeoutMs }
+      );
+
+      // ⚠️ 빈 검색은 서버 측에서 시스템 오류 페이지를 반환한다 (HTML, JSON 아님).
+      // srchPrgrStts=1(모집중) 라디오를 강제 선택해 회피 — 어차피 모집중인 공고만 필요.
+      await page.evaluate(() => {
+        const radio = document.querySelector<HTMLInputElement>(
+          'input[name="srchPrgrStts"][value="1"]'
+        );
+        if (radio) radio.checked = true;
+      });
+
+      // 첫 페이지 호출
       let currentPage = 1;
-      const maxPages = this.config.maxPages > 0 ? this.config.maxPages : Infinity;
+      const firstResponse = await callFnSearchAndCaptureJson(
+        page,
+        currentPage,
+        this.config.timeoutMs
+      );
+      const firstList = firstResponse.resultList ?? [];
+      allItems.push(...firstList);
 
-      while (currentPage <= maxPages) {
-        const rows = await extractListRows(page);
-        allRows.push(...rows);
-        console.log(`[MYHOME] 목록 페이지 ${currentPage} — ${rows.length}건`);
+      const totalCount = firstResponse.resultCnt ?? firstList.length;
+      const pageSize = firstList.length || DEFAULT_PAGE_SIZE;
+      const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 1;
+      const userMaxPages =
+        this.config.maxPages > 0 ? this.config.maxPages : ABSOLUTE_MAX_PAGES;
+      const effectiveMaxPages = Math.min(totalPages, userMaxPages, ABSOLUTE_MAX_PAGES);
 
-        const hasNext = await page.$("a.btn-next:not(.disabled), a[title='다음']").catch(() => null);
-        if (!hasNext) break;
+      console.log(
+        `[MYHOME] 목록 페이지 ${currentPage}/${effectiveMaxPages} — ${firstList.length}건 (전체 ${totalCount}건 예상)`
+      );
 
-        await hasNext.click();
-        await page.waitForSelector(LIST_READY_SELECTOR, { timeout: this.config.timeoutMs });
-        await delay(this.config.requestDelayMs);
+      // 2페이지 이상부터 순회
+      while (currentPage < effectiveMaxPages) {
         currentPage++;
+        await delay(this.config.requestDelayMs);
+
+        try {
+          const response = await callFnSearchAndCaptureJson(
+            page,
+            currentPage,
+            this.config.timeoutMs
+          );
+          const list = response.resultList ?? [];
+          if (list.length === 0) {
+            console.log(`[MYHOME] 페이지 ${currentPage} 빈 응답 — 종료`);
+            break;
+          }
+          allItems.push(...list);
+          console.log(
+            `[MYHOME] 목록 페이지 ${currentPage}/${effectiveMaxPages} — ${list.length}건`
+          );
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          console.error(`[MYHOME] 페이지 ${currentPage} 수집 실패:`, message);
+          errors.push({ source: this.source, phase: "list", message });
+          break;
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -239,37 +321,47 @@ export class MyhomeScraper implements Scraper {
       await page.close();
     }
 
-    return allRows;
+    return allItems;
   }
 
   /**
-   * 단일 공고 처리: 상세 페이지 접속 → rawHtml + PDF 추출
-   * detailPage를 재사용하여 페이지 생성/삭제 오버헤드 제거
+   * 단일 JSON 항목 처리: RawAnnouncement 변환 + 상세 페이지 보강
    */
-  private async processRow(
-    row: ListRowData,
+  private async processItem(
+    item: MyhomeListItem,
     detailPage: Page,
     errors: ScrapeError[]
-  ): Promise<RawAnnouncement> {
-    let announcement = buildAnnouncement(row);
+  ): Promise<RawAnnouncement | null> {
+    let announcement = buildAnnouncementFromJson(item);
+    if (!announcement) {
+      console.warn("[MYHOME] 빈 항목 스킵:", JSON.stringify(item).slice(0, 100));
+      return null;
+    }
 
     try {
-      announcement = await this.enrichWithDetail(announcement, detailPage);
+      announcement = await this.enrichWithDetail(announcement, detailPage, item);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[MYHOME] 상세 수집 실패 (${row.pblancId}):`, message);
-      errors.push({ source: this.source, phase: "detail", externalId: row.pblancId, message });
+      console.error(`[MYHOME] 상세 수집 실패 (${item.pblancId}):`, message);
+      errors.push({
+        source: this.source,
+        phase: "detail",
+        externalId: item.pblancId,
+        message,
+      });
     }
 
     return announcement;
   }
 
   /**
-   * 상세 페이지 접속 → rawHtml, PDF 보강 (페이지 재사용)
+   * 상세 페이지 접속 → rawHtml + PDF 추출
+   * JSON에 atchFileId가 있으면 우선 사용, 없으면 상세 HTML에서 fileSn까지 함께 파싱
    */
   private async enrichWithDetail(
     announcement: RawAnnouncement,
-    page: Page
+    page: Page,
+    item: MyhomeListItem
   ): Promise<RawAnnouncement> {
     await page.goto(announcement.detailUrl, {
       waitUntil: "domcontentloaded",
@@ -283,7 +375,7 @@ export class MyhomeScraper implements Scraper {
 
     const fileInfo = extractPdfFileInfo(rawHtml);
     if (!fileInfo) {
-      console.warn(`[MYHOME] PDF 링크 없음 (${announcement.externalId})`);
+      console.warn(`[MYHOME] PDF 링크 없음 (${item.pblancId})`);
       return announcement;
     }
 

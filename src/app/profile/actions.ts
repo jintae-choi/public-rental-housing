@@ -50,6 +50,22 @@ function parseReminderDays(formData: FormData): number[] {
     .filter((n) => !isNaN(n));
 }
 
+// 클라이언트로 노출 가능한 사용자 친화 에러 메시지 화이트리스트
+// (DB 제약/스택 트레이스 등 내부 정보 누출 방지)
+const USER_FACING_ERROR_MESSAGES = new Set<string>([
+  "마지막 시나리오는 삭제할 수 없습니다.",
+  "시나리오를 찾을 수 없습니다.",
+]);
+
+function safeErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    if (USER_FACING_ERROR_MESSAGES.has(error.message)) return error.message;
+    // 동적 메시지(최대 개수 등)는 prefix 매칭으로 허용
+    if (error.message.startsWith("시나리오는 최대 ")) return error.message;
+  }
+  return fallback;
+}
+
 // ─── 인증 헬퍼 ─────────────────────────────────────────────────────────────
 
 async function requireUserId(): Promise<string> {
@@ -150,10 +166,8 @@ export async function saveScenario(
     revalidatePath("/profile");
     return { scenarioId: created.id };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "시나리오 저장 실패";
     console.error("[saveScenario] 실패:", error);
-    return { error: message };
+    return { error: safeErrorMessage(error, "시나리오 저장 중 오류가 발생했습니다.") };
   }
 }
 
@@ -166,9 +180,7 @@ export async function deleteScenario(
     revalidatePath("/profile");
     return {};
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "시나리오 삭제 실패";
     console.error("[deleteScenario] 실패:", error);
-    return { error: message };
+    return { error: safeErrorMessage(error, "시나리오 삭제 중 오류가 발생했습니다.") };
   }
 }

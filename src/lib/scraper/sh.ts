@@ -91,7 +91,11 @@ export class ShScraper implements Scraper {
 
   /**
    * 목록 페이지 한 화면에서 공고 항목 파싱
-   * 목록 페이지는 매번 새 페이지로 열어야 함 (페이지네이션이 URL 기반)
+   *
+   * 2026-04-13 사이트 구조 변경 대응:
+   *   - 기존: `a[href*="view.do?seq="]` 직접 링크 → 더 이상 존재하지 않음
+   *   - 현재: `td.txtL a[onclick="javascript:getDetailView('302870');..."]` 패턴
+   *   - 컬럼: 번호 / 제목 / 담당부서 / 작성일 / 조회수 (상태 컬럼 없음 — OPEN 기본 가정)
    */
   private async fetchListPage(pageNum: number): Promise<ShListItem[]> {
     const url = `${SH_LIST_BASE_URL}&page=${pageNum}`;
@@ -99,44 +103,47 @@ export class ShScraper implements Scraper {
 
     try {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: this.config.timeoutMs });
-      await page.waitForSelector('a[href*="view.do?seq="]', {
-        timeout: this.config.timeoutMs,
-        state: "attached",
-      }).catch(() => {
-        // 마지막 페이지이거나 항목 없음
-      });
+      await page
+        .waitForSelector("#listTb table tbody tr", {
+          timeout: this.config.timeoutMs,
+          state: "attached",
+        })
+        .catch(() => {
+          // 마지막 페이지 너머이거나 빈 결과
+        });
 
       const items = await page.$$eval(
-        'a[href*="view.do?seq="]',
-        (anchors) => {
-          return anchors.map((anchor) => {
-            const href = anchor.getAttribute("href") ?? "";
-            const seqMatch = href.match(/[?&]seq=(\d+)/);
-            const seq = seqMatch ? seqMatch[1] : "";
-            const title = anchor.textContent?.trim() ?? "";
-
-            const row = anchor.closest("tr");
-            const cells = row ? Array.from(row.querySelectorAll("td")) : [];
-
-            const dateCell = cells.find((td) =>
-              /\d{4}[.\-]\d{2}[.\-]\d{2}/.test(td.textContent ?? "")
-            );
-            const date = dateCell?.textContent?.trim() ?? "";
-
-            const statusCell = cells.find((td) => {
-              const text = td.textContent?.trim() ?? "";
-              return (
-                text.includes("모집중") ||
-                text.includes("접수중") ||
-                text.includes("마감") ||
-                text.includes("예정") ||
-                text.includes("완료")
+        "#listTb table tbody tr",
+        (rows) => {
+          const SEQ_PATTERN = /getDetailView\('(\d+)'\)/;
+          return rows
+            .map((row) => {
+              const titleAnchor = row.querySelector<HTMLAnchorElement>(
+                "td.txtL a[onclick*=getDetailView]"
               );
-            });
-            const statusText = statusCell?.textContent?.trim() ?? "";
+              if (!titleAnchor) return null;
+              const onclick = titleAnchor.getAttribute("onclick") ?? "";
+              const seqMatch = onclick.match(SEQ_PATTERN);
+              if (!seqMatch) return null;
+              const seq = seqMatch[1];
 
-            return { seq, title, date, statusText };
-          });
+              // 제목 텍스트만 추출 (NEW 뱃지 등 자식 span 제외)
+              // textContent를 그대로 쓰면 NEW 등도 포함되니 trim 후 NEW prefix 제거
+              const rawTitle = titleAnchor.textContent?.replace(/\s+/g, " ").trim() ?? "";
+              const title = rawTitle.replace(/^NEW\s*/, "").trim();
+
+              const cells = Array.from(row.querySelectorAll("td"));
+              // 등록일은 보통 4번째 td (번호/제목/부서/등록일/조회수)
+              const dateCell = cells.find((td) =>
+                /\d{4}[.\-]\d{2}[.\-]\d{2}/.test(td.textContent ?? "")
+              );
+              const date = dateCell?.textContent?.trim() ?? "";
+
+              return { seq, title, date, statusText: "" };
+            })
+            .filter((x): x is { seq: string; title: string; date: string; statusText: string } =>
+              x !== null
+            );
         }
       );
 
@@ -179,6 +186,8 @@ export class ShScraper implements Scraper {
 
   /**
    * 상세 페이지 HTML 및 추가 메타데이터 수집 (페이지 재사용)
+   *
+   * SH 상세는 GET 직접 접근 가능 (NetFunnel 미적용) — 추가 셀렉터 대기 없이 domcontentloaded만으로 충분
    */
   private async fetchDetail(
     page: Page,
@@ -186,21 +195,22 @@ export class ShScraper implements Scraper {
   ): Promise<{ rawHtml: string; extraData: ShExtraData }> {
     const url = `${SH_DETAIL_BASE_URL}?seq=${seq}&multi_itm_seq=2&page=1`;
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: this.config.timeoutMs });
-    await page.waitForSelector(".board_view, .brd_view, .view_content, table", {
-      timeout: this.config.timeoutMs,
-      state: "attached",
-    }).catch(() => {});
 
     const rawHtml = await page.content();
-    const extraData = this.extractExtraData(rawHtml);
+    // 제목 기반 housingType 추론을 위해 호출자가 ShListItem.title을 알고 있어야 하지만
+    // fetchDetail은 seq만 받으므로 일단 빈 문자열을 넘겨 housingType은 parseToAnnouncement 시점에 보강
+    const extraData = this.extractExtraData(rawHtml, "");
 
     return { rawHtml, extraData };
   }
 
   /**
-   * rawHtml에서 추가 구조화 데이터 추출 (evaluate 불필요 — 문자열 파싱)
+   * rawHtml + 제목에서 추가 구조화 데이터 추출
+   *
+   * housingType은 rawHtml로 inferHousingType 하면 SH 사이트 네비게이션 메뉴의
+   * "행복주택" 등이 항상 매칭되어 잘못된 결과가 나옴 → 제목으로만 추론
    */
-  private extractExtraData(rawHtml: string): ShExtraData {
+  private extractExtraData(rawHtml: string, title: string): ShExtraData {
     try {
       const dateRangeRegex = /(\d{4}[.\-]\d{2}[.\-]\d{2})\s*[~～\-]\s*(\d{4}[.\-]\d{2}[.\-]\d{2})/;
       const dateRangeMatch = rawHtml.match(dateRangeRegex);
@@ -208,7 +218,7 @@ export class ShScraper implements Scraper {
       return {
         applicationStart: dateRangeMatch ? normalizeDate(dateRangeMatch[1]) : undefined,
         applicationEnd: dateRangeMatch ? normalizeDate(dateRangeMatch[2]) : undefined,
-        housingType: inferHousingType(rawHtml),
+        housingType: inferHousingType(title),
       };
     } catch (err) {
       console.error("[SH] 추가 데이터 추출 실패:", err instanceof Error ? err.message : err);
@@ -222,13 +232,21 @@ export class ShScraper implements Scraper {
   ): RawAnnouncement {
     const { extraData, rawHtml } = detail;
 
+    // SH 목록에는 상태 컬럼이 없음 → 제목에서 마감/완료 키워드를 우선 검사하고
+    // 없으면 OPEN 가정 (모집 게시판은 활성 공고만 노출)
+    const statusFromTitle = parseStatus(item.title);
+    const status = statusFromTitle === "UPCOMING" ? "OPEN" : statusFromTitle;
+
+    // housingType은 제목으로 재추론 (extraData에선 빈 문자열을 넘겼으므로 undefined일 수 있음)
+    const housingType = extraData.housingType ?? inferHousingType(item.title);
+
     return {
       externalId: `SH-${item.seq}`,
       source: "SH",
       title: item.title,
       detailUrl: `${SH_DETAIL_BASE_URL}?seq=${item.seq}&multi_itm_seq=2&page=1`,
-      status: parseStatus(item.statusText),
-      housingType: extraData.housingType,
+      status,
+      housingType,
       region: SH_DEFAULT_REGION,
       applicationStart: extraData.applicationStart,
       applicationEnd: extraData.applicationEnd,

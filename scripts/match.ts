@@ -166,7 +166,12 @@ async function main(): Promise<void> {
   console.log("자격 매칭 파이프라인 정상 완료.");
 }
 
-main().catch((error) => {
-  console.error("자격 매칭 파이프라인 치명적 오류:", error);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    // db 모듈이 postgres 커넥션 풀을 열어두기 때문에 명시 종료 필요
+    process.exit(process.exitCode ?? 0);
+  })
+  .catch((error) => {
+    console.error("자격 매칭 파이프라인 치명적 오류:", error);
+    process.exit(1);
+  });
