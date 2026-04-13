@@ -42,3 +42,6 @@ next-env.d.ts
 
 # 로컬 학습 노트 (git 제외)
 .notes/
+
+# Claude Code 개인 설정 (에이전트/훅/스킬/락파일)
+.claude/
